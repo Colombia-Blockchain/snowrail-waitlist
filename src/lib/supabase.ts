@@ -24,8 +24,30 @@ export async function submitWaitlist(formData: WaitlistFormData): Promise<Waitli
       body: payload,
     })
 
+    // Handle function invocation errors
     if (error) {
+      console.error('Supabase function error:', error)
+
+      // Try to extract JSON error from the response context
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const context = (error as any).context
+      if (context?.body) {
+        try {
+          const errorBody = JSON.parse(context.body)
+          if (errorBody.error) {
+            throw new Error(errorBody.error)
+          }
+        } catch {
+          // Parsing failed, use default message
+        }
+      }
+
       throw new Error(error.message || 'Failed to submit waitlist form')
+    }
+
+    // Check if data contains an error (Edge Function returned error JSON with 2xx)
+    if (data && typeof data === 'object' && 'error' in data) {
+      throw new Error(data.error as string)
     }
 
     return data as WaitlistResult
