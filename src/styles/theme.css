@@ -1,0 +1,306 @@
+/* SnowRail Design System Tokens */
+:root {
+  /* Background colors */
+  --bg-0: #050B14;
+  --bg-1: #071225;
+  --bg-2: #0A1830;
+
+  /* Text colors */
+  --text-0: #EAF2FF;
+  --text-1: rgba(234, 242, 255, 0.78);
+  --text-2: rgba(234, 242, 255, 0.55);
+
+  /* Stroke/Border colors */
+  --stroke: rgba(160, 200, 255, 0.18);
+  --stroke-strong: rgba(160, 220, 255, 0.28);
+  --stroke-hover: rgba(160, 220, 255, 0.45);
+
+  /* Glass surfaces */
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-2: rgba(255, 255, 255, 0.09);
+  --glass-3: rgba(255, 255, 255, 0.12);
+
+  /* Glow colors */
+  --glow-cyan: rgba(90, 240, 255, 0.35);
+  --glow-blue: rgba(80, 150, 255, 0.35);
+  --glow-hot: rgba(255, 90, 70, 0.30);
+
+  /* Accent colors */
+  --accent-cyan: #5AF0FF;
+  --accent-blue: #5096FF;
+  --accent-success: #10B981;
+  --accent-error: #EF4444;
+
+  /* Spacing */
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+}
+
+/* Base styles */
+html, body, #root {
+  height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-0);
+  background:
+    radial-gradient(900px 600px at 50% 35%, rgba(80, 170, 255, 0.18), transparent 55%),
+    radial-gradient(700px 520px at 15% 20%, rgba(90, 240, 255, 0.14), transparent 52%),
+    radial-gradient(900px 700px at 85% 15%, rgba(120, 140, 255, 0.10), transparent 55%),
+    radial-gradient(1200px 900px at 50% 100%, rgba(0, 0, 0, 0.65), transparent 60%),
+    linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Grid overlay utility */
+.bg-snowrail-grid {
+  background-image:
+    linear-gradient(to right, rgba(160, 200, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(160, 200, 255, 0.08) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(circle at 50% 35%, black 55%, transparent 85%);
+  -webkit-mask-image: radial-gradient(circle at 50% 35%, black 55%, transparent 85%);
+  opacity: 0.35;
+}
+
+/* Glass panel utility */
+.glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--stroke);
+  box-shadow:
+    0 18px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-subtle {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--stroke);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.glass-hover {
+  transition: all 0.2s ease;
+}
+
+.glass-hover:hover {
+  border-color: var(--stroke-hover);
+  box-shadow:
+    0 20px 70px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Glow ring utility */
+.glow-ring {
+  position: relative;
+}
+
+.glow-ring::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 50%, var(--glow-cyan), transparent 60%),
+    radial-gradient(circle at 70% 40%, var(--glow-blue), transparent 55%);
+  filter: blur(10px);
+  opacity: 0.85;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.glow-ring-subtle::before {
+  opacity: 0.5;
+}
+
+/* Button base styles */
+.btn-base {
+  min-height: 44px;
+  padding: 12px 24px;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, rgba(90, 240, 255, 0.2), rgba(80, 150, 255, 0.15));
+  border: 1px solid var(--stroke-strong);
+  color: var(--text-0);
+  box-shadow:
+    0 4px 20px rgba(90, 240, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(180deg, rgba(90, 240, 255, 0.3), rgba(80, 150, 255, 0.25));
+  border-color: var(--stroke-hover);
+  box-shadow:
+    0 6px 30px rgba(90, 240, 255, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--stroke);
+  color: var(--text-1);
+}
+
+.btn-secondary:hover {
+  border-color: var(--stroke-strong);
+  color: var(--text-0);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Input base styles */
+.input-base {
+  min-height: 44px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--stroke);
+  color: var(--text-0);
+  font-size: 15px;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.input-base::placeholder {
+  color: var(--text-2);
+}
+
+.input-base:hover {
+  border-color: var(--stroke-strong);
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--stroke-hover);
+  box-shadow: 0 0 0 3px rgba(90, 240, 255, 0.15);
+}
+
+.input-base:focus-visible {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px rgba(90, 240, 255, 0.2);
+}
+
+.input-error {
+  border-color: var(--accent-error) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Select styling */
+.select-base {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23EAF2FF'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  padding-right: 40px;
+}
+
+/* Checkbox styling */
+.checkbox-base {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--stroke-strong);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.checkbox-base:checked {
+  background: linear-gradient(180deg, var(--accent-cyan), var(--accent-blue));
+  border-color: var(--accent-cyan);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23050B14' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M5 13l4 4L19 7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px;
+}
+
+.checkbox-base:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Text utilities */
+.text-gradient {
+  background: linear-gradient(135deg, var(--text-0), var(--accent-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--stroke-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--stroke-hover);
+}
