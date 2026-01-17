@@ -12,6 +12,7 @@ import type {
   AuditLevel,
   FlowDirection,
   SettlementSLA,
+  PaymentRails,
   WaitlistResult,
 } from '../types/waitlist'
 import {
@@ -25,6 +26,7 @@ import {
   AUDIT_LEVELS,
   FLOW_DIRECTIONS,
   SETTLEMENT_SLAS,
+  PAYMENT_RAILS,
 } from '../types/waitlist'
 import { submitWaitlist } from '../lib/supabase'
 
@@ -38,7 +40,7 @@ interface WaitlistFormProps {
 
 const initialFormData: WaitlistFormData = {
   email: '',
-  consent: false,
+  consent: true, // Already consented in fast submit
   segment: '',
   role: '',
   isDecisionMaker: null,
@@ -54,6 +56,9 @@ const initialFormData: WaitlistFormData = {
   flowDirection: '',
   settlementSla: '',
   notes: '',
+  regionsSupported: [],
+  paymentRails: '',
+  apiAvailable: null,
 }
 
 export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail, initialRegion }: WaitlistFormProps) {
@@ -68,7 +73,8 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const totalSteps = 5
+  const isRampPartner = formData.segment === 'Ramp partner'
+  const totalSteps = isRampPartner ? 2 : 3
 
   const updateField = <K extends keyof WaitlistFormData>(
     field: K,
@@ -87,40 +93,27 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
     }))
   }
 
+  const toggleRegionSupported = (region: Region) => {
+    setFormData((prev) => ({
+      ...prev,
+      regionsSupported: prev.regionsSupported.includes(region)
+        ? prev.regionsSupported.filter((r) => r !== region)
+        : [...prev.regionsSupported, region],
+    }))
+  }
+
   const validateStep = (): boolean => {
     const newErrors: Partial<Record<keyof WaitlistFormData, string>> = {}
 
-    switch (step) {
-      case 1:
-        if (!formData.segment) newErrors.segment = 'Please select a segment'
-        if (!formData.role.trim()) newErrors.role = 'Please enter your role'
-        if (formData.isDecisionMaker === null) newErrors.isDecisionMaker = 'Please select an option'
-        break
-      case 2:
-        if (!formData.company.trim()) newErrors.company = 'Please enter your company name'
-        if (!formData.region) newErrors.region = 'Please select a region'
-        break
-      case 3:
-        if (!formData.useCase) newErrors.useCase = 'Please select a use case'
-        if (!formData.monthlyVolumeBand) newErrors.monthlyVolumeBand = 'Please select a volume range'
-        if (!formData.frequency) newErrors.frequency = 'Please select a frequency'
-        break
-      case 4:
-        if (formData.triggers.length === 0) newErrors.triggers = 'Please select at least one trigger'
-        if (!formData.approvals) newErrors.approvals = 'Please select an approval type'
-        if (!formData.auditLevel) newErrors.auditLevel = 'Please select an audit level'
-        break
-      case 5:
-        if (!formData.email.trim()) {
-          newErrors.email = 'Please enter your email'
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-          newErrors.email = 'Please enter a valid email address'
-        }
-        if (!formData.consent) {
-          newErrors.consent = 'Please accept to continue'
-        }
-        break
+    if (step === 1) {
+      // Only role is strictly required
+      if (!formData.role.trim()) newErrors.role = 'Please enter your role'
+      // Company required for teams only
+      if (!isRampPartner && !formData.company.trim()) {
+        newErrors.company = 'Please enter your company name'
+      }
     }
+    // Steps 2 and 3 are optional
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -136,9 +129,11 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
     setStep((prev) => Math.max(prev - 1, 1))
   }
 
-  const handleSubmit = async () => {
-    if (!validateStep()) return
+  const handleSkip = () => {
+    setStep((prev) => Math.min(prev + 1, totalSteps))
+  }
 
+  const handleSubmit = async () => {
     setIsSubmitting(true)
     setSubmitError(null)
 
@@ -152,8 +147,7 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
     }
   }
 
-  const showOffRampQuestions =
-    formData.segment === 'B2B Treasury/Ops' ||
+  const showFlowQuestions =
     formData.useCase === 'Milestone-based vendor payouts' ||
     formData.useCase === 'Recurring contractor payroll' ||
     formData.useCase === 'Invoice settlement / AP automation'
@@ -162,7 +156,10 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
     <div className="fixed inset-0 bg-ink-0/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <GlassCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-snow-0">Join the Waitlist</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-snow-0">Add Details</h2>
+            <p className="text-sm text-snow-2 mt-1">Improve your pilot priority</p>
+          </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-glass-2 rounded-xl transition-colors"
@@ -176,25 +173,30 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
 
         <ProgressIndicator currentStep={step} totalSteps={totalSteps} />
 
-        {/* Step 1: Segment & Role */}
+        {/* Step 1: Basics (Required) */}
         {step === 1 && (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-snow-0 mb-2">
-                What describes you best? *
-              </label>
-              <select
-                value={formData.segment}
-                onChange={(e) => updateField('segment', e.target.value as Segment)}
-                className={`input-base select-base ${errors.segment ? 'input-error' : ''}`}
-              >
-                <option value="">Select a segment</option>
-                {SEGMENTS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              {errors.segment && <p className="text-error text-sm mt-1.5">{errors.segment}</p>}
-            </div>
+          <div className="space-y-5">
+            <p className="text-sm text-cyan mb-4">Required — helps us understand your needs</p>
+
+            {/* Segment (if not pre-filled) */}
+            {!initialSegment && (
+              <div>
+                <label className="block text-sm font-medium text-snow-0 mb-2">
+                  What describes you best? *
+                </label>
+                <select
+                  value={formData.segment}
+                  onChange={(e) => updateField('segment', e.target.value as Segment)}
+                  className={`input-base select-base ${errors.segment ? 'input-error' : ''}`}
+                >
+                  <option value="">Select a segment</option>
+                  {SEGMENTS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                {errors.segment && <p className="text-error text-sm mt-1.5">{errors.segment}</p>}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
@@ -212,7 +214,7 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Do you make purchasing decisions? *
+                Do you make purchasing decisions?
               </label>
               <div className="flex gap-4">
                 <button
@@ -238,31 +240,27 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
                   No
                 </button>
               </div>
-              {errors.isDecisionMaker && <p className="text-error text-sm mt-1.5">{errors.isDecisionMaker}</p>}
             </div>
-          </div>
-        )}
 
-        {/* Step 2: Company & Region */}
-        {step === 2 && (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-snow-0 mb-2">
-                Company / Project *
-              </label>
-              <input
-                type="text"
-                value={formData.company}
-                onChange={(e) => updateField('company', e.target.value)}
-                placeholder="Your company or project name"
-                className={`input-base ${errors.company ? 'input-error' : ''}`}
-              />
-              {errors.company && <p className="text-error text-sm mt-1.5">{errors.company}</p>}
-            </div>
+            {!isRampPartner && (
+              <div>
+                <label className="block text-sm font-medium text-snow-0 mb-2">
+                  Company / Project *
+                </label>
+                <input
+                  type="text"
+                  value={formData.company}
+                  onChange={(e) => updateField('company', e.target.value)}
+                  placeholder="Your company or project name"
+                  className={`input-base ${errors.company ? 'input-error' : ''}`}
+                />
+                {errors.company && <p className="text-error text-sm mt-1.5">{errors.company}</p>}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Website (optional)
+                Website
               </label>
               <input
                 type="url"
@@ -273,87 +271,194 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-snow-0 mb-2">
-                Primary region *
-              </label>
-              <select
-                value={formData.region}
-                onChange={(e) => updateField('region', e.target.value as Region)}
-                className={`input-base select-base ${errors.region ? 'input-error' : ''}`}
-              >
-                <option value="">Select a region</option>
-                {REGIONS.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-              {errors.region && <p className="text-error text-sm mt-1.5">{errors.region}</p>}
-            </div>
+            {/* Region (if not pre-filled) */}
+            {!initialRegion && (
+              <div>
+                <label className="block text-sm font-medium text-snow-0 mb-2">
+                  Primary region
+                </label>
+                <select
+                  value={formData.region}
+                  onChange={(e) => updateField('region', e.target.value as Region)}
+                  className="input-base select-base"
+                >
+                  <option value="">Select a region</option>
+                  {REGIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Step 3: Use Case & Volume */}
-        {step === 3 && (
-          <div className="space-y-6">
+        {/* Step 2 for Teams: Pilot Fit (Optional) */}
+        {step === 2 && !isRampPartner && (
+          <div className="space-y-5">
+            <p className="text-sm text-snow-2 mb-4">Optional — improves pilot priority (~30s)</p>
+
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Primary use case *
+                Primary use case
               </label>
               <select
                 value={formData.useCase}
                 onChange={(e) => updateField('useCase', e.target.value as UseCase)}
-                className={`input-base select-base ${errors.useCase ? 'input-error' : ''}`}
+                className="input-base select-base"
               >
                 <option value="">Select a use case</option>
                 {USE_CASES.map((uc) => (
                   <option key={uc} value={uc}>{uc}</option>
                 ))}
               </select>
-              {errors.useCase && <p className="text-error text-sm mt-1.5">{errors.useCase}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Estimated monthly volume (USD) *
+                Estimated monthly volume (USD)
               </label>
               <select
                 value={formData.monthlyVolumeBand}
                 onChange={(e) => updateField('monthlyVolumeBand', e.target.value as VolumeRange)}
-                className={`input-base select-base ${errors.monthlyVolumeBand ? 'input-error' : ''}`}
+                className="input-base select-base"
               >
                 <option value="">Select volume range</option>
                 {VOLUME_RANGES.map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
               </select>
-              {errors.monthlyVolumeBand && <p className="text-error text-sm mt-1.5">{errors.monthlyVolumeBand}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Payment frequency *
+                Payment frequency
               </label>
               <select
                 value={formData.frequency}
                 onChange={(e) => updateField('frequency', e.target.value as Frequency)}
-                className={`input-base select-base ${errors.frequency ? 'input-error' : ''}`}
+                className="input-base select-base"
               >
                 <option value="">Select frequency</option>
                 {FREQUENCIES.map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
-              {errors.frequency && <p className="text-error text-sm mt-1.5">{errors.frequency}</p>}
             </div>
           </div>
         )}
 
-        {/* Step 4: Conditions & Controls */}
-        {step === 4 && (
-          <div className="space-y-6">
+        {/* Step 2 for Ramp Partners: Partner Details (Optional) */}
+        {step === 2 && isRampPartner && (
+          <div className="space-y-5">
+            <p className="text-sm text-snow-2 mb-4">Optional — helps us understand your integration needs (~30s)</p>
+
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                What triggers a payment? (select all that apply) *
+                Regions supported
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {REGIONS.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => toggleRegionSupported(r)}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                      formData.regionsSupported.includes(r)
+                        ? 'bg-gradient-to-r from-cyan/20 to-blue/15 border border-stroke-hover text-snow-0'
+                        : 'glass-subtle text-snow-1 hover:border-stroke-strong'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-snow-0 mb-2">
+                Typical settlement SLA
+              </label>
+              <select
+                value={formData.settlementSla}
+                onChange={(e) => updateField('settlementSla', e.target.value as SettlementSLA)}
+                className="input-base select-base"
+              >
+                <option value="">Select SLA</option>
+                {SETTLEMENT_SLAS.map((sla) => (
+                  <option key={sla} value={sla}>{sla}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-snow-0 mb-2">
+                Payment rails supported
+              </label>
+              <select
+                value={formData.paymentRails}
+                onChange={(e) => updateField('paymentRails', e.target.value as PaymentRails)}
+                className="input-base select-base"
+              >
+                <option value="">Select rails</option>
+                {PAYMENT_RAILS.map((rail) => (
+                  <option key={rail} value={rail}>{rail}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-snow-0 mb-2">
+                API available?
+              </label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => updateField('apiAvailable', true)}
+                  className={`flex-1 min-h-[44px] px-4 py-3 rounded-xl transition-all ${
+                    formData.apiAvailable === true
+                      ? 'bg-gradient-to-r from-cyan/20 to-blue/15 border border-stroke-hover text-snow-0 shadow-[0_0_20px_rgba(90,240,255,0.15)]'
+                      : 'glass-subtle text-snow-1 hover:border-stroke-strong'
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('apiAvailable', false)}
+                  className={`flex-1 min-h-[44px] px-4 py-3 rounded-xl transition-all ${
+                    formData.apiAvailable === false
+                      ? 'bg-gradient-to-r from-cyan/20 to-blue/15 border border-stroke-hover text-snow-0 shadow-[0_0_20px_rgba(90,240,255,0.15)]'
+                      : 'glass-subtle text-snow-1 hover:border-stroke-strong'
+                  }`}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-snow-0 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => updateField('notes', e.target.value)}
+                placeholder="Tell us more about your integration needs..."
+                rows={3}
+                className="input-base resize-none"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 for Teams: Controls & Settlement (Optional) */}
+        {step === 3 && !isRampPartner && (
+          <div className="space-y-5">
+            <p className="text-sm text-snow-2 mb-4">Optional — helps us tailor your pilot (~30s)</p>
+
+            <div>
+              <label className="block text-sm font-medium text-snow-0 mb-2">
+                What triggers a payment? (select all that apply)
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {TRIGGERS.map((t) => (
@@ -371,48 +476,45 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
                   </button>
                 ))}
               </div>
-              {errors.triggers && <p className="text-error text-sm mt-1.5">{errors.triggers}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Do you require human approvals? *
+                Do you require human approvals?
               </label>
               <select
                 value={formData.approvals}
                 onChange={(e) => updateField('approvals', e.target.value as Approval)}
-                className={`input-base select-base ${errors.approvals ? 'input-error' : ''}`}
+                className="input-base select-base"
               >
                 <option value="">Select an option</option>
                 {APPROVALS.map((a) => (
                   <option key={a} value={a}>{a}</option>
                 ))}
               </select>
-              {errors.approvals && <p className="text-error text-sm mt-1.5">{errors.approvals}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Audit / reconciliation needs *
+                Audit / reconciliation needs
               </label>
               <select
                 value={formData.auditLevel}
                 onChange={(e) => updateField('auditLevel', e.target.value as AuditLevel)}
-                className={`input-base select-base ${errors.auditLevel ? 'input-error' : ''}`}
+                className="input-base select-base"
               >
                 <option value="">Select audit level</option>
                 {AUDIT_LEVELS.map((al) => (
                   <option key={al} value={al}>{al}</option>
                 ))}
               </select>
-              {errors.auditLevel && <p className="text-error text-sm mt-1.5">{errors.auditLevel}</p>}
             </div>
 
-            {showOffRampQuestions && (
+            {showFlowQuestions && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-snow-0 mb-2">
-                    Flow direction (optional)
+                    Flow direction
                   </label>
                   <select
                     value={formData.flowDirection}
@@ -426,46 +528,29 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-snow-0 mb-2">
-                    Settlement SLA (optional)
-                  </label>
-                  <select
-                    value={formData.settlementSla}
-                    onChange={(e) => updateField('settlementSla', e.target.value as SettlementSLA)}
-                    className="input-base select-base"
-                  >
-                    <option value="">Select SLA</option>
-                    {SETTLEMENT_SLAS.map((sla) => (
-                      <option key={sla} value={sla}>{sla}</option>
-                    ))}
-                  </select>
-                </div>
+                {(formData.flowDirection === 'USDC → USD (off-ramp)' || formData.flowDirection === 'Both') && (
+                  <div>
+                    <label className="block text-sm font-medium text-snow-0 mb-2">
+                      Settlement SLA
+                    </label>
+                    <select
+                      value={formData.settlementSla}
+                      onChange={(e) => updateField('settlementSla', e.target.value as SettlementSLA)}
+                      className="input-base select-base"
+                    >
+                      <option value="">Select SLA</option>
+                      {SETTLEMENT_SLAS.map((sla) => (
+                        <option key={sla} value={sla}>{sla}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </>
             )}
-          </div>
-        )}
-
-        {/* Step 5: Contact & Consent */}
-        {step === 5 && (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-snow-0 mb-2">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateField('email', e.target.value)}
-                placeholder="you@company.com"
-                className={`input-base ${errors.email ? 'input-error' : ''}`}
-              />
-              {errors.email && <p className="text-error text-sm mt-1.5">{errors.email}</p>}
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-snow-0 mb-2">
-                Describe your scenario (optional)
+                Describe your scenario
               </label>
               <textarea
                 value={formData.notes}
@@ -475,26 +560,12 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
                 className="input-base resize-none"
               />
             </div>
+          </div>
+        )}
 
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="consent"
-                checked={formData.consent}
-                onChange={(e) => updateField('consent', e.target.checked)}
-                className="checkbox-base mt-0.5"
-              />
-              <label htmlFor="consent" className="text-sm text-snow-1 cursor-pointer">
-                I agree to be contacted about pilots and updates from SnowRail. *
-              </label>
-            </div>
-            {errors.consent && <p className="text-error text-sm">{errors.consent}</p>}
-
-            {submitError && (
-              <div className="p-4 rounded-xl border border-error/30 bg-error/10 text-error text-sm">
-                {submitError}
-              </div>
-            )}
+        {submitError && (
+          <div className="p-4 rounded-xl border border-error/30 bg-error/10 text-error text-sm mt-4">
+            {submitError}
           </div>
         )}
 
@@ -503,15 +574,27 @@ export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail,
           <SecondaryButton onClick={step === 1 ? onClose : handleBack}>
             {step === 1 ? 'Cancel' : 'Back'}
           </SecondaryButton>
-          {step < totalSteps ? (
-            <PrimaryButton onClick={handleNext}>
-              Continue
-            </PrimaryButton>
-          ) : (
-            <PrimaryButton onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </PrimaryButton>
-          )}
+
+          <div className="flex gap-3">
+            {step > 1 && step < totalSteps && (
+              <button
+                onClick={handleSkip}
+                className="px-4 py-2 text-sm text-snow-2 hover:text-snow-1 transition-colors"
+              >
+                Skip
+              </button>
+            )}
+
+            {step < totalSteps ? (
+              <PrimaryButton onClick={handleNext}>
+                Continue
+              </PrimaryButton>
+            ) : (
+              <PrimaryButton onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Finish'}
+              </PrimaryButton>
+            )}
+          </div>
         </div>
       </GlassCard>
     </div>
