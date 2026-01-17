@@ -32,6 +32,17 @@ export type SettlementSLA = 'Sub-hour' | 'Same day' | '1-2 business days' | 'Fle
 
 export type Track = 'PILOT' | 'DISCOVERY' | 'NURTURE'
 
+export type PaymentRails = 'ACH' | 'Wire' | 'SEPA' | 'Other'
+
+// Fast submit - minimum fields for quick conversion
+export interface FastSubmitData {
+  email: string
+  segment: Segment
+  region: Region
+  consent: boolean
+}
+
+// Full form data with optional fields
 export interface WaitlistFormData {
   email: string
   consent: boolean
@@ -50,6 +61,10 @@ export interface WaitlistFormData {
   flowDirection: FlowDirection | ''
   settlementSla: SettlementSLA | ''
   notes: string
+  // Ramp partner specific fields
+  regionsSupported: Region[]
+  paymentRails: PaymentRails | ''
+  apiAvailable: boolean | null
 }
 
 export interface WaitlistSubmission extends WaitlistFormData {
@@ -64,6 +79,7 @@ export interface WaitlistResult {
   score: number
   track: Track
   nextStep: string
+  isUpdate?: boolean
 }
 
 export const SEGMENTS: Segment[] = [
@@ -117,3 +133,5 @@ export const SETTLEMENT_SLAS: SettlementSLA[] = [
   '1-2 business days',
   'Flexible',
 ]
+
+export const PAYMENT_RAILS: PaymentRails[] = ['ACH', 'Wire', 'SEPA', 'Other']
