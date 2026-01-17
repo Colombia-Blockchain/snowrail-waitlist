@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Header, Hero, SegmentCards, WaitlistForm, ThankYou } from './components'
+import { LayoutShell } from './components/ui'
 import type { WaitlistResult, Segment } from './types/waitlist'
 
 type AppState = 'landing' | 'form' | 'success'
@@ -31,7 +32,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <LayoutShell>
       <Header />
       <main>
         <Hero onJoinWaitlist={handleJoinWaitlist} onPartnerClick={handlePartnerClick} />
@@ -49,7 +50,7 @@ function App() {
       {state === 'success' && result && (
         <ThankYou result={result} onClose={handleClose} />
       )}
-    </div>
+    </LayoutShell>
   )
 }
 
