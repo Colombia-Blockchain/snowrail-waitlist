@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { GlassCard, PrimaryButton, useToast } from './ui'
-import { shareWaitlist } from '../lib/share'
+import { shareOnX, copyShareLink } from '../lib/share'
 import type { WaitlistResult } from '../types/waitlist'
 
 interface WaitlistSuccessModalProps {
@@ -10,21 +9,17 @@ interface WaitlistSuccessModalProps {
 
 export function WaitlistSuccessModal({ result, onClose }: WaitlistSuccessModalProps) {
   const { showToast } = useToast()
-  const [isSharing, setIsSharing] = useState(false)
 
-  const handleShare = async () => {
-    setIsSharing(true)
+  const handleShareOnX = () => {
+    shareOnX({ ref: 'waitlist' })
+  }
+
+  const handleCopyLink = async () => {
     try {
-      const shareResult = await shareWaitlist()
-      if (shareResult === 'copied') {
-        showToast('Link copied to clipboard', 'success')
-      }
-    } catch (err) {
-      if ((err as Error).name !== 'AbortError') {
-        showToast('Failed to share', 'error')
-      }
-    } finally {
-      setIsSharing(false)
+      await copyShareLink({ ref: 'waitlist' })
+      showToast('Link copied', 'success')
+    } catch {
+      showToast('Failed to copy link', 'error')
     }
   }
 
@@ -87,26 +82,41 @@ export function WaitlistSuccessModal({ result, onClose }: WaitlistSuccessModalPr
           </p>
 
           {/* Actions */}
-          <div className="space-y-3">
-            <PrimaryButton onClick={onClose} fullWidth>
-              Done
+          <div className="space-y-2">
+            {/* Primary: Share on X */}
+            <PrimaryButton onClick={handleShareOnX} fullWidth>
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                Share on X
+              </span>
             </PrimaryButton>
 
+            {/* Secondary: Copy link */}
             <button
-              onClick={handleShare}
-              disabled={isSharing}
+              onClick={handleCopyLink}
               className="w-full py-2.5 px-4 rounded-xl border border-stroke text-snow-2 hover:text-snow-0 hover:border-stroke-strong transition-all flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              {isSharing ? 'Sharing...' : 'Share'}
+              Copy link
             </button>
 
-            <p className="text-xs text-snow-2">
-              Invite a relevant team or partner.
-            </p>
+            {/* Done button */}
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 px-4 text-snow-2 hover:text-snow-0 transition-colors text-sm"
+            >
+              Done
+            </button>
           </div>
+
+          {/* Share microcopy */}
+          <p className="text-xs text-snow-2 mt-2">
+            Share with a relevant team or partner.
+          </p>
         </div>
       </GlassCard>
     </div>

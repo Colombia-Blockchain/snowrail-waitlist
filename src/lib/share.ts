@@ -1,35 +1,42 @@
 export interface ShareOptions {
-  signupId?: string
+  ref?: string
 }
 
-export function getShareUrl(options?: ShareOptions): string {
-  const base = window.location.origin + window.location.pathname
-  const ref = options?.signupId || 'waitlist'
-  return `${base}?ref=${ref}`
+const TWEET_TEXT = 'SnowRail Pilot Waitlist is open. Programmable B2B payouts with evidence-based release, policy controls, and verifiable settlement (USDC on-chain → USD via nsegundos).'
+
+/**
+ * Get the base URL for sharing.
+ * Uses VITE_PUBLIC_SITE_URL if defined, otherwise window.location.origin.
+ */
+export function getBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_PUBLIC_SITE_URL
+  return envUrl || window.location.origin
 }
 
-export async function shareWaitlist(options?: ShareOptions): Promise<'shared' | 'copied'> {
-  const shareUrl = getShareUrl(options)
-  const shareData = {
-    title: 'SnowRail Pilot Waitlist',
-    text: 'Join the SnowRail Pilot waitlist for programmable B2B payouts.',
-    url: shareUrl,
-  }
+/**
+ * Build the share URL with ref parameter.
+ */
+export function buildShareUrl(ref?: string): string {
+  const base = getBaseUrl()
+  const safeRef = encodeURIComponent(ref || 'waitlist')
+  return `${base}/?ref=${safeRef}`
+}
 
-  // Try native share (mobile)
-  if (navigator.share && navigator.canShare?.(shareData)) {
-    try {
-      await navigator.share(shareData)
-      return 'shared'
-    } catch (err) {
-      // User cancelled or error - fall through to clipboard
-      if ((err as Error).name === 'AbortError') {
-        throw err // User cancelled, don't copy
-      }
-    }
-  }
+/**
+ * Open Twitter/X with pre-filled enterprise tweet.
+ */
+export function shareOnX(options?: ShareOptions): void {
+  const url = buildShareUrl(options?.ref)
+  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(TWEET_TEXT)}&url=${encodeURIComponent(url)}`
+  window.open(intentUrl, '_blank', 'noopener,noreferrer')
+}
 
-  // Fallback: copy to clipboard
-  await navigator.clipboard.writeText(shareUrl)
-  return 'copied'
+/**
+ * Copy the share link to clipboard.
+ * Returns the URL that was copied.
+ */
+export async function copyShareLink(options?: ShareOptions): Promise<string> {
+  const url = buildShareUrl(options?.ref)
+  await navigator.clipboard.writeText(url)
+  return url
 }
