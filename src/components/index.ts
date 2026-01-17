@@ -1,6 +1,5 @@
 export { Header } from './Header'
 export { Hero } from './Hero'
 export { SegmentCards } from './SegmentCards'
-export { ProgressBar } from './ProgressBar'
 export { WaitlistForm } from './WaitlistForm'
 export { ThankYou } from './ThankYou'
