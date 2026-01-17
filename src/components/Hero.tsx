@@ -1,59 +1,88 @@
-import { GlassCard } from './ui'
-import { PrimaryButton, SecondaryButton } from './ui/Button'
+import { forwardRef } from 'react'
+import { WaitlistQuickForm, type WaitlistQuickFormRef, type UserType } from './WaitlistQuickForm'
+import type { Region } from '../types/waitlist'
 
 interface HeroProps {
-  onJoinWaitlist: () => void
-  onPartnerClick: () => void
+  onExpandForm: (data: { email: string; userType: UserType; region: Region }) => void
 }
 
-export function Hero({ onJoinWaitlist, onPartnerClick }: HeroProps) {
+export const Hero = forwardRef<WaitlistQuickFormRef, HeroProps>(({ onExpandForm }, ref) => {
   return (
-    <section className="min-h-[85vh] flex flex-col justify-center px-6 py-16 max-w-5xl mx-auto">
-      <GlassCard glow className="max-w-4xl">
-        <div className="mb-6">
-          <span className="inline-block px-4 py-1.5 text-xs font-medium tracking-wide text-cyan bg-cyan/10 rounded-full uppercase border border-cyan/20">
-            B2B Financial Infrastructure
-          </span>
-        </div>
+    <section className="min-h-[90vh] flex items-center px-6 py-16 md:py-20">
+      <div className="max-w-6xl mx-auto w-full">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left: Copy */}
+          <div className="max-w-xl">
+            <div className="badge mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
+              Pilot Waitlist Open
+            </div>
 
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-snow-0 leading-tight mb-6">
-          <span className="text-gradient">SnowRail:</span> ejecucion financiera programable para pagos B2B con liquidacion verificable.
-        </h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-snow-0 leading-[1.15] tracking-tight mb-5">
+              Join the <span className="text-gradient">SnowRail</span> Pilot Waitlist
+            </h1>
 
-        <p className="text-lg md:text-xl text-snow-1 mb-10 leading-relaxed">
-          Define pagos condicionales, valida evidencia y liquida automaticamente: USDC on-chain → USD via partner (nsegundos).
-        </p>
-
-        <div className="space-y-4 mb-10">
-          <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-cyan rounded-full mt-2 shrink-0 shadow-[0_0_8px_rgba(90,240,255,0.5)]" />
-            <p className="text-base md:text-lg text-snow-1">
-              <span className="font-semibold text-snow-0">Financial intents:</span> paga solo cuando se cumplan condiciones reales.
+            <p className="text-lg text-snow-1 mb-8 leading-relaxed">
+              Automate milestone-based B2B payouts: evidence → controls → verifiable settlement (USDC on-chain → USD via nsegundos).
             </p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-cyan rounded-full mt-2 shrink-0 shadow-[0_0_8px_rgba(90,240,255,0.5)]" />
-            <p className="text-base md:text-lg text-snow-1">
-              <span className="font-semibold text-snow-0">Controles:</span> limites, whitelists y aprobacion por umbral con trazabilidad.
-            </p>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-cyan rounded-full mt-2 shrink-0 shadow-[0_0_8px_rgba(90,240,255,0.5)]" />
-            <p className="text-base md:text-lg text-snow-1">
-              <span className="font-semibold text-snow-0">Settlement auditable:</span> registro + receipt del off-ramp para conciliacion.
-            </p>
-          </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
-          <PrimaryButton onClick={onJoinWaitlist} className="text-base px-8 py-4">
-            Join the waitlist
-          </PrimaryButton>
-          <SecondaryButton onClick={onPartnerClick} className="text-base px-8 py-4">
-            I'm a partner (ramp / RWA / integrations)
-          </SecondaryButton>
+            <div className="space-y-3 mb-8">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-cyan/15 border border-cyan/30 flex items-center justify-center mt-0.5 shrink-0">
+                  <svg className="w-3 h-3 text-cyan" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-snow-1">
+                  <span className="font-medium text-snow-0">Pay on proof</span> — release funds only when conditions are verified
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-cyan/15 border border-cyan/30 flex items-center justify-center mt-0.5 shrink-0">
+                  <svg className="w-3 h-3 text-cyan" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-snow-1">
+                  <span className="font-medium text-snow-0">Built-in controls</span> — limits, approvals, and audit trails
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-cyan/15 border border-cyan/30 flex items-center justify-center mt-0.5 shrink-0">
+                  <svg className="w-3 h-3 text-cyan" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-snow-1">
+                  <span className="font-medium text-snow-0">Verifiable settlement</span> — auditable receipts for reconciliation
+                </p>
+              </div>
+            </div>
+
+            {/* Social proof / trust */}
+            <div className="flex items-center gap-4 text-sm text-snow-2">
+              <div className="flex -space-x-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan/30 to-blue/20 border-2 border-ink-0 flex items-center justify-center text-xs font-medium text-snow-1"
+                  >
+                    {String.fromCharCode(64 + i)}
+                  </div>
+                ))}
+              </div>
+              <span>50+ teams on the waitlist</span>
+            </div>
+          </div>
+
+          {/* Right: Form */}
+          <div className="flex justify-center lg:justify-end">
+            <WaitlistQuickForm ref={ref} onExpandForm={onExpandForm} />
+          </div>
         </div>
-      </GlassCard>
+      </div>
     </section>
   )
-}
+})
+
+Hero.displayName = 'Hero'
