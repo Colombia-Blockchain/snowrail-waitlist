@@ -1,5 +1,8 @@
 export { Header } from './Header'
 export { Hero } from './Hero'
 export { SegmentCards } from './SegmentCards'
+export { HowItWorks } from './HowItWorks'
+export { FAQ } from './FAQ'
 export { WaitlistForm } from './WaitlistForm'
 export { ThankYou } from './ThankYou'
+export { WaitlistQuickForm, type UserType, type WaitlistQuickFormRef } from './WaitlistQuickForm'

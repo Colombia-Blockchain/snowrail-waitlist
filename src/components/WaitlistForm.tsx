@@ -32,6 +32,8 @@ interface WaitlistFormProps {
   onClose: () => void
   onSuccess: (result: WaitlistResult) => void
   initialSegment?: Segment
+  initialEmail?: string
+  initialRegion?: Region
 }
 
 const initialFormData: WaitlistFormData = {
@@ -54,11 +56,13 @@ const initialFormData: WaitlistFormData = {
   notes: '',
 }
 
-export function WaitlistForm({ onClose, onSuccess, initialSegment }: WaitlistFormProps) {
+export function WaitlistForm({ onClose, onSuccess, initialSegment, initialEmail, initialRegion }: WaitlistFormProps) {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<WaitlistFormData>({
     ...initialFormData,
     segment: initialSegment || '',
+    email: initialEmail || '',
+    region: initialRegion || '',
   })
   const [errors, setErrors] = useState<Partial<Record<keyof WaitlistFormData, string>>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
