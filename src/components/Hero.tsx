@@ -1,12 +1,12 @@
 import { forwardRef } from 'react'
-import { WaitlistQuickForm, type WaitlistQuickFormRef, type UserType } from './WaitlistQuickForm'
-import type { Region } from '../types/waitlist'
+import { WaitlistQuickForm, type WaitlistQuickFormRef } from './WaitlistQuickForm'
+import type { Region, Segment } from '../types/waitlist'
 
 interface HeroProps {
-  onExpandForm: (data: { email: string; userType: UserType; region: Region }) => void
+  onAddDetails: (data: { email: string; segment: Segment; region: Region }) => void
 }
 
-export const Hero = forwardRef<WaitlistQuickFormRef, HeroProps>(({ onExpandForm }, ref) => {
+export const Hero = forwardRef<WaitlistQuickFormRef, HeroProps>(({ onAddDetails }, ref) => {
   return (
     <section className="min-h-[90vh] flex items-center px-6 py-16 md:py-20">
       <div className="max-w-6xl mx-auto w-full">
@@ -77,7 +77,7 @@ export const Hero = forwardRef<WaitlistQuickFormRef, HeroProps>(({ onExpandForm 
 
           {/* Right: Form */}
           <div className="flex justify-center lg:justify-end">
-            <WaitlistQuickForm ref={ref} onExpandForm={onExpandForm} />
+            <WaitlistQuickForm ref={ref} onAddDetails={onAddDetails} />
           </div>
         </div>
       </div>

@@ -24,16 +24,11 @@ function App() {
 
   const quickFormRef = useRef<WaitlistQuickFormRef>(null)
 
-  // Called when user submits the quick form in Hero
-  const handleExpandForm = (data: { email: string; userType: UserType; region: Region }) => {
+  // Called when user wants to add details (after fast submit or clicking link)
+  const handleAddDetails = (data: { email: string; segment: Segment; region: Region }) => {
     setInitialEmail(data.email)
     setInitialRegion(data.region)
-    // Map userType to segment
-    const segmentMap: Record<UserType, Segment> = {
-      team: 'B2B Treasury/Ops',
-      partner: 'Ramp partner',
-    }
-    setInitialSegment(segmentMap[data.userType])
+    setInitialSegment(data.segment)
     setState('form')
   }
 
@@ -63,7 +58,7 @@ function App() {
     <LayoutShell>
       <Header />
       <main>
-        <Hero ref={quickFormRef} onExpandForm={handleExpandForm} />
+        <Hero ref={quickFormRef} onAddDetails={handleAddDetails} />
         <SegmentCards onSelectSegment={handleSelectSegment} />
         <HowItWorks />
         <FAQ />
