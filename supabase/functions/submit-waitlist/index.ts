@@ -6,31 +6,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface WaitlistPayload {
+interface FastSubmitPayload {
   email: string
-  consent: boolean
   segment: string
-  role: string
-  isDecisionMaker: boolean | null
-  company: string
-  website: string
   region: string
-  useCase: string
-  monthlyVolumeBand: string
-  frequency: string
-  triggers: string[]
-  approvals: string
-  auditLevel: string
-  flowDirection: string
-  settlementSla: string
-  notes: string
-  userAgent: string
-  referrer: string
+  consent: boolean
+  signupId?: string
+  userAgent?: string
+  referrer?: string
+}
+
+interface FullPayload extends FastSubmitPayload {
+  role?: string
+  isDecisionMaker?: boolean | null
+  company?: string
+  website?: string
+  useCase?: string
+  monthlyVolumeBand?: string
+  frequency?: string
+  triggers?: string[]
+  approvals?: string
+  auditLevel?: string
+  flowDirection?: string
+  settlementSla?: string
+  notes?: string
+  // Ramp partner specific
+  regionsSupported?: string[]
+  paymentRails?: string
+  apiAvailable?: boolean
 }
 
 type Track = 'PILOT' | 'DISCOVERY' | 'NURTURE'
 
-function computeScore(form: WaitlistPayload): number {
+function computeScore(form: FullPayload): number {
   let painSignal = 0
   let volumeSignal = 0
   let complexitySignal = 0
@@ -43,7 +51,7 @@ function computeScore(form: WaitlistPayload): number {
     'Milestone-based vendor payouts',
     'Recurring contractor payroll',
   ]
-  if (highPainUseCases.includes(form.useCase)) {
+  if (form.useCase && highPainUseCases.includes(form.useCase)) {
     painSignal = 15
   } else if (form.useCase === 'Other') {
     painSignal = 5
@@ -59,10 +67,10 @@ function computeScore(form: WaitlistPayload): number {
     '100k-500k': 18,
     '>500k': 20,
   }
-  volumeSignal = volumeScores[form.monthlyVolumeBand] || 0
+  volumeSignal = form.monthlyVolumeBand ? (volumeScores[form.monthlyVolumeBand] || 0) : 0
 
   // Signal 3: Complexity (0-20)
-  complexitySignal = Math.min(form.triggers.length * 4, 20)
+  complexitySignal = form.triggers ? Math.min(form.triggers.length * 4, 20) : 0
 
   // Signal 4: Controls/Audit (0-20)
   const approvalScores: Record<string, number> = {
@@ -75,8 +83,8 @@ function computeScore(form: WaitlistPayload): number {
     'Standard (exportable logs)': 14,
     'High (receipt + policy trail)': 20,
   }
-  const approvalScore = approvalScores[form.approvals] || 0
-  const auditScore = auditScores[form.auditLevel] || 0
+  const approvalScore = form.approvals ? (approvalScores[form.approvals] || 0) : 0
+  const auditScore = form.auditLevel ? (auditScores[form.auditLevel] || 0) : 0
   controlsSignal = Math.min(Math.max(approvalScore, auditScore), 20)
 
   // Signal 5: Implementability (0-20)
@@ -87,6 +95,10 @@ function computeScore(form: WaitlistPayload): number {
     implementabilitySignal += 10
   }
   if (form.segment === 'B2B Treasury/Ops') {
+    implementabilitySignal += 5
+  }
+  // Ramp partners get bonus for having API
+  if (form.segment === 'Ramp partner' && form.apiAvailable === true) {
     implementabilitySignal += 5
   }
   implementabilitySignal = Math.min(implementabilitySignal, 20)
@@ -100,7 +112,11 @@ function computeTrack(score: number): Track {
   return 'NURTURE'
 }
 
-function getNextStep(track: Track, segment: string): string {
+function getNextStep(track: Track, segment: string, isFastSubmit: boolean): string {
+  if (isFastSubmit) {
+    return 'Thanks for joining! Add more details to improve your pilot priority.'
+  }
+
   switch (track) {
     case 'PILOT':
       return segment === 'Ramp partner'
@@ -113,7 +129,7 @@ function getNextStep(track: Track, segment: string): string {
   }
 }
 
-function validatePayload(payload: unknown): payload is WaitlistPayload {
+function validateFastSubmit(payload: unknown): payload is FastSubmitPayload {
   if (!payload || typeof payload !== 'object') return false
   const p = payload as Record<string, unknown>
 
@@ -123,12 +139,6 @@ function validatePayload(payload: unknown): payload is WaitlistPayload {
   if (p.consent !== true) return false
   if (typeof p.segment !== 'string' || !p.segment) return false
   if (typeof p.region !== 'string' || !p.region) return false
-  if (typeof p.useCase !== 'string' || !p.useCase) return false
-  if (typeof p.monthlyVolumeBand !== 'string' || !p.monthlyVolumeBand) return false
-  if (typeof p.frequency !== 'string' || !p.frequency) return false
-  if (!Array.isArray(p.triggers) || p.triggers.length === 0) return false
-  if (typeof p.approvals !== 'string' || !p.approvals) return false
-  if (typeof p.auditLevel !== 'string' || !p.auditLevel) return false
 
   return true
 }
@@ -140,59 +150,90 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json()
+    const payload = await req.json() as FullPayload
 
-    // Validate payload
-    if (!validatePayload(payload)) {
+    // Validate minimum required fields (fast submit)
+    if (!validateFastSubmit(payload)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid or incomplete form data' }),
+        JSON.stringify({ error: 'Invalid or incomplete form data. Email, segment, region, and consent are required.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Compute score server-side
+    // Compute score (may be low for fast submit with minimal data)
     const score = computeScore(payload)
     const track = computeTrack(score)
-    const nextStep = getNextStep(track, payload.segment)
+
+    // Determine if this is a fast submit (minimal fields) or full submission
+    const isFastSubmit = !payload.useCase && !payload.role
+    const nextStep = getNextStep(track, payload.segment, isFastSubmit)
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Insert into database
-    const { error: dbError } = await supabase.from('waitlist_signups').insert({
+    // Prepare record for upsert
+    const record = {
       email: payload.email,
       consent: payload.consent,
       segment: payload.segment,
+      region: payload.region,
       role: payload.role || null,
-      is_decision_maker: payload.isDecisionMaker,
+      is_decision_maker: payload.isDecisionMaker ?? null,
       company: payload.company || null,
       website: payload.website || null,
-      region: payload.region,
-      use_case: payload.useCase,
-      monthly_volume_band: payload.monthlyVolumeBand,
-      frequency: payload.frequency,
-      triggers: payload.triggers,
-      approvals: payload.approvals,
-      audit_level: payload.auditLevel,
+      use_case: payload.useCase || null,
+      monthly_volume_band: payload.monthlyVolumeBand || null,
+      frequency: payload.frequency || null,
+      triggers: payload.triggers || [],
+      approvals: payload.approvals || null,
+      audit_level: payload.auditLevel || null,
       flow_direction: payload.flowDirection || null,
       settlement_sla: payload.settlementSla || null,
       notes: payload.notes || null,
+      // Ramp partner fields
+      regions_supported: payload.regionsSupported || null,
+      payment_rails: payload.paymentRails || null,
+      api_available: payload.apiAvailable ?? null,
+      // Scoring
       score,
       track,
+      // Metadata
       user_agent: payload.userAgent || null,
       referrer: payload.referrer || null,
-    })
+    }
+
+    // Upsert: insert or update if email already exists
+    const { data: existingRecord } = await supabase
+      .from('waitlist_signups')
+      .select('id, score')
+      .eq('email', payload.email)
+      .single()
+
+    let dbError
+    if (existingRecord) {
+      // Update existing record (add more details)
+      // Only update score if new score is higher (more details = better fit)
+      const updateRecord = {
+        ...record,
+        score: Math.max(record.score, existingRecord.score),
+        track: computeTrack(Math.max(record.score, existingRecord.score)),
+      }
+      const { error } = await supabase
+        .from('waitlist_signups')
+        .update(updateRecord)
+        .eq('id', existingRecord.id)
+      dbError = error
+    } else {
+      // Insert new record
+      const { error } = await supabase
+        .from('waitlist_signups')
+        .insert(record)
+      dbError = error
+    }
 
     if (dbError) {
-      // Handle duplicate email
-      if (dbError.code === '23505') {
-        return new Response(
-          JSON.stringify({ error: 'This email is already registered on the waitlist.' }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
       console.error('Database error:', dbError)
       return new Response(
         JSON.stringify({ error: 'Failed to save submission. Please try again.' }),
@@ -204,9 +245,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         segment: payload.segment,
-        score,
-        track,
+        score: existingRecord ? Math.max(score, existingRecord.score) : score,
+        track: existingRecord ? computeTrack(Math.max(score, existingRecord.score)) : track,
         nextStep,
+        isUpdate: !!existingRecord,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
