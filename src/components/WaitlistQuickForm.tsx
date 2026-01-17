@@ -1,5 +1,6 @@
 import { useState, forwardRef, useImperativeHandle } from 'react'
-import { GlassCard, PrimaryButton } from './ui'
+import { GlassCard, PrimaryButton, useToast } from './ui'
+import { WaitlistSuccessCard } from './WaitlistSuccessCard'
 import { REGIONS, type Region, type Segment } from '../types/waitlist'
 import { submitWaitlist } from '../lib/supabase'
 
@@ -21,6 +22,7 @@ const userTypeToSegment: Record<UserType, Segment> = {
 
 export const WaitlistQuickForm = forwardRef<WaitlistQuickFormRef, WaitlistQuickFormProps>(
   ({ onAddDetails }, ref) => {
+    const { showToast } = useToast()
     const [email, setEmail] = useState('')
     const [userType, setUserType] = useState<UserType>('team')
     const [region, setRegion] = useState<Region | ''>('')
@@ -88,6 +90,7 @@ export const WaitlistQuickForm = forwardRef<WaitlistQuickFormRef, WaitlistQuickF
           apiAvailable: null,
         })
         setIsSubmitted(true)
+        showToast("You're on the list!", 'success')
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : 'Something went wrong')
       } finally {
@@ -100,35 +103,15 @@ export const WaitlistQuickForm = forwardRef<WaitlistQuickFormRef, WaitlistQuickF
       onAddDetails({ email, segment, region: region as Region })
     }
 
-    // Submitted state
+    // Submitted state - inline success card
     if (isSubmitted) {
       return (
         <div ref={setFormRef} id="waitlist-form">
-          <GlassCard className="max-w-md w-full text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-cyan/20 to-blue/10 border border-cyan/30 flex items-center justify-center">
-              <svg className="w-8 h-8 text-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-snow-0 mb-2">You're on the list!</h3>
-            <p className="text-snow-1 text-sm mb-6">
-              We'll review your submission and reach out within 48-72h.
-            </p>
-            <button
-              onClick={handleAddDetails}
-              className="w-full py-3 px-4 rounded-xl glass-subtle text-snow-0 font-medium hover:border-stroke-strong transition-all group"
-            >
-              <span className="flex items-center justify-center gap-2">
-                Add details to improve pilot priority
-                <svg className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-            </button>
-            <p className="microcopy mt-4">
-              Optional — improves pilot priority (~60s)
-            </p>
-          </GlassCard>
+          <WaitlistSuccessCard
+            nextStepText="We'll review your submission and reach out within 48-72h."
+            showAddDetailsCta
+            onAddDetails={handleAddDetails}
+          />
         </div>
       )
     }

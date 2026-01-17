@@ -6,11 +6,11 @@ import {
   HowItWorks,
   FAQ,
   WaitlistForm,
-  ThankYou,
+  WaitlistSuccessModal,
   type WaitlistQuickFormRef,
   type UserType,
 } from './components'
-import { LayoutShell } from './components/ui'
+import { LayoutShell, ToastProvider } from './components/ui'
 import type { WaitlistResult, Segment, Region } from './types/waitlist'
 
 type AppState = 'landing' | 'form' | 'success'
@@ -55,29 +55,31 @@ function App() {
   }
 
   return (
-    <LayoutShell>
-      <Header />
-      <main>
-        <Hero ref={quickFormRef} onAddDetails={handleAddDetails} />
-        <SegmentCards onSelectSegment={handleSelectSegment} />
-        <HowItWorks />
-        <FAQ />
-      </main>
+    <ToastProvider>
+      <LayoutShell>
+        <Header />
+        <main>
+          <Hero ref={quickFormRef} onAddDetails={handleAddDetails} />
+          <SegmentCards onSelectSegment={handleSelectSegment} />
+          <HowItWorks />
+          <FAQ />
+        </main>
 
-      {state === 'form' && (
-        <WaitlistForm
-          onClose={handleClose}
-          onSuccess={handleFormSuccess}
-          initialSegment={initialSegment}
-          initialEmail={initialEmail}
-          initialRegion={initialRegion}
-        />
-      )}
+        {state === 'form' && (
+          <WaitlistForm
+            onClose={handleClose}
+            onSuccess={handleFormSuccess}
+            initialSegment={initialSegment}
+            initialEmail={initialEmail}
+            initialRegion={initialRegion}
+          />
+        )}
 
-      {state === 'success' && result && (
-        <ThankYou result={result} onClose={handleClose} />
-      )}
-    </LayoutShell>
+        {state === 'success' && result && (
+          <WaitlistSuccessModal result={result} onClose={handleClose} />
+        )}
+      </LayoutShell>
+    </ToastProvider>
   )
 }
 
